@@ -5,7 +5,7 @@ const App = () => {
   const [score, setScore] = useState(0)
   const [level, setLevel] = useState(0)
   const [diamond, setDiamond] = useState({ x: 5, y: 12 })
-
+  const [time, setTime] = useState(600)
   const [start, setStart] = useState(undefined)
 
   const [snakes, setSnakes] = useState([])
@@ -94,20 +94,25 @@ const App = () => {
       })
       return updatedSnakes
     })
-    // setSnakes((prevSnakes) => {
-    //   const updatedSankes = prevSnakes.map((snake) => {
-    //     return snake.move()
-    //   })
-    //   return updatedSankes
-    // })
   }
   useEffect(() => {
     let intervalId
     if (start) {
-      intervalId = setInterval(moveAllSnakes, 500)
+      intervalId = setInterval(moveAllSnakes, time)
     }
     return () => clearInterval(intervalId)
-  }, [start])
+  }, [start, time])
+
+
+  const handleReset = () => {
+    setStart(undefined)
+    setScore(0)
+    setDiamond({ x: 5, y: 12 })
+    setTime(600)
+    const snake = new Snake()
+    setSnakes([snake])
+  }
+
 
   const handleClick = (e) => {
     const posx = parseInt(e.target.dataset['x'])
@@ -126,7 +131,14 @@ const App = () => {
     }
 
     if (isSnake) {
-      setScore((prev) => prev - 10)
+      setScore((prev) => {
+        const updatedScore = prev - 10
+        if (updatedScore < 0) {
+          alert('Game Over')
+          handleReset()
+        }
+        return updatedScore
+      })
     } else if (posx === diamond.x && posy === diamond.y) {
       setScore((prev) => prev + 10)
       const x = Math.floor(Math.random() * 10)
@@ -136,6 +148,7 @@ const App = () => {
 
       if (score >= (level + 1) * 100) {
         setLevel((level) => level + 1)
+        setTime((prev) => Math.max(30, prev / 2))
         addSnake()
       }
     }
@@ -188,14 +201,6 @@ const App = () => {
   const handleStop = () => {
     if (!start) return
     setStart(false)
-  }
-
-  const handleReset = () => {
-    setStart(undefined)
-    setScore(0)
-    setDiamond({ x: 5, y: 12 })
-    const snake = new Snake()
-    setSnakes([snake])
   }
 
   const Ribbon = ({ start }) => {
