@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useState } from 'react'
 
 const App = () => {
@@ -8,11 +8,126 @@ const App = () => {
 
   const [start, setStart] = useState(undefined)
 
+  const [snakes, setSnakes] = useState([])
+
+  class Snake {
+    constructor() {
+      this.pos = [
+        { x: 0, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: 2 },
+        { x: 0, y: 3 },
+      ]
+      this.direction = 0
+    }
+
+    move() {
+      this.direction = Math.floor(Math.random() * 4)
+
+      let newHead
+      const head = this.pos[0]
+      switch (this.direction) {
+        // 0->up 1->bottom 2->left 3->right
+        case 0:
+          newHead = { x: head.x, y: (head.y - 1 + 20) % 20 }
+          break
+        case 1:
+          newHead = { x: head.x, y: (head.y + 1) % 20 }
+          break
+        case 2:
+          newHead = { x: (head.x - 1 + 10) % 10, y: head.y }
+          break
+        case 3:
+          newHead = { x: (head.x + 1) % 10, y: head.y }
+          break
+      }
+
+      let isValid = true
+      for (const pos of this.pos) {
+        if (pos.x === newHead.x && pos.y === newHead.y) {
+          isValid = false
+          break
+        }
+      }
+
+      if (!isValid) {
+        this.direction = (this.direction + 1) % 4
+        switch (this.direction) {
+          // 0->up 1->bottom 2->left 3->right
+          case 0:
+            newHead = { x: head.x, y: (head.y - 1 + 20) % 20 }
+            break
+          case 1:
+            newHead = { x: head.x, y: (head.y + 1) % 20 }
+            break
+          case 2:
+            newHead = { x: (head.x - 1 + 10) % 10, y: head.y }
+            break
+          case 3:
+            newHead = { x: (head.x + 1) % 10, y: head.y }
+            break
+        }
+      }
+
+      this.pos.unshift(newHead)
+      this.pos.pop()
+    }
+  }
+
+  const addSnake = () => {
+    const snake = new Snake()
+    setSnakes([...snakes, snake])
+  }
+
+  useEffect(() => {
+    addSnake()
+  }, [])
+
+  const moveAllSnakes = () => {
+    setSnakes((prevSnakes) => {
+      const updatedSnakes = prevSnakes.map((snake) => {
+        const newSnake = new Snake()
+        newSnake.pos = snake.pos.slice()
+        newSnake.direction = snake.direction
+        newSnake.move()
+        return newSnake
+      })
+      return updatedSnakes
+    })
+    // setSnakes((prevSnakes) => {
+    //   const updatedSankes = prevSnakes.map((snake) => {
+    //     return snake.move()
+    //   })
+    //   return updatedSankes
+    // })
+  }
+  useEffect(() => {
+    let intervalId
+    if (start) {
+      intervalId = setInterval(moveAllSnakes, 500)
+    }
+    return () => clearInterval(intervalId)
+  }, [start])
+
   const handleClick = (e) => {
     const posx = parseInt(e.target.dataset['x'])
     const posy = parseInt(e.target.dataset['y'])
     if (!start) return
-    if (posx === diamond.x && posy === diamond.y) {
+
+    let isSnake = false
+    for (const snake of snakes) {
+      for (const pos of snake.pos) {
+        if (pos.x === posx && pos.y === posy) {
+          isSnake = true
+          break
+        }
+      }
+      if (isSnake) break
+    }
+
+    if (isSnake) {
+      setScore((prev) => prev - 10)
+    } else if (posx === diamond.x && posy === diamond.y) {
       setScore((prev) => prev + 10)
       const x = Math.floor(Math.random() * 10)
       const y = Math.floor(Math.random() * 20)
@@ -21,6 +136,7 @@ const App = () => {
 
       if (score >= (level + 1) * 100) {
         setLevel((level) => level + 1)
+        addSnake()
       }
     }
   }
@@ -34,6 +150,20 @@ const App = () => {
 
         let isDiamond = diamond.x === i && diamond.y === j
         if (isDiamond) cn = `${cn} diamond`
+
+        let isSnake = false
+        for (const snake of snakes) {
+          for (const pos of snake.pos) {
+            if (pos.x === i && pos.y === j) {
+              isSnake = true
+              break
+            }
+          }
+          if (isSnake) break
+        }
+
+        if (isSnake) cn = `${cn} snake`
+
         let cell = (
           <div
             className={cn}
@@ -58,6 +188,14 @@ const App = () => {
   const handleStop = () => {
     if (!start) return
     setStart(false)
+  }
+
+  const handleReset = () => {
+    setStart(undefined)
+    setScore(0)
+    setDiamond({ x: 5, y: 12 })
+    const snake = new Snake()
+    setSnakes([snake])
   }
 
   const Ribbon = ({ start }) => {
@@ -100,7 +238,7 @@ const App = () => {
 
   return (
     <div className='w-full h-screen bg-gray-100'>
-      <Ribbon start={start}/>
+      <Ribbon start={start} />
       <h1 className='text-[40px] text-center font-serif p-5'>
         Careful !!! 🐍 Everywhere{' '}
       </h1>
@@ -130,6 +268,14 @@ const App = () => {
           onClick={handleStop}
         >
           <p className='text-2xl font-bold'>Stop</p>
+        </button>
+      </div>
+      <div className='flex justify-center items-center'>
+        <button
+          className='bg-gray-400 border border-gray-300 rounded-lg px-8 py-4'
+          onClick={handleReset}
+        >
+          <p className='text-2xl font-bold'>Reset</p>
         </button>
       </div>
     </div>
